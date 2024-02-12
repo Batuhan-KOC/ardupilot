@@ -61,6 +61,32 @@ extern const AP_HAL::HAL& hal;
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #define SWITCH_DEBOUNCE_TIME_MS  200
 
+//RAVENTECH
+/*
+ From mission planner:
+
+ Set RC6_OPTION to SCRIPTING_1 which will be act as "CONTROL COMMAND"
+ Set RC7_OPTION to SCRIPTING_2 which will be act as "CHARGING COMMAND"
+ Set RC8_OPTION to SCRIPTING_3 which will be act as "EXPLOSION TRIGGER"
+ Set RC9_OPTION to SCRIPTING_4 which will be act as "SAFETY TRIGGER"
+
+ From the RC controller:
+ Set CH6 to control command button or switch on the controller
+ Set CH7 to charging command button or switch on the controller
+ Set CH8 to explosion trigger button or switch on the controller
+ Set CH9 to safety trigger button or switch on the controller
+
+ On Jumper T-PRO the previous task can be done under MIXES settings page (5/11)
+*/
+
+static AP_HAL::UARTDriver* fuzeDevicePort;
+
+static bool fuzeDevicePortConfigured = false;
+static bool fuzeDeviceControlRequested = false;
+static bool fuzeDeviceChargeRequested = false;
+static bool fuzeExplosionTriggerOn = false;
+static bool fuzeSafetyTriggerOn = false;
+
 const AP_Param::GroupInfo RC_Channel::var_info[] = {
     // @Param: MIN
     // @DisplayName: RC min PWM
@@ -839,10 +865,127 @@ bool RC_Channel::read_aux()
 #endif
 
     // debounced; undertake the action:
+
+    // RAVENTECH
+    if(!fuzeDevicePortConfigured){
+        fuzeDevicePort = AP::serialmanager().get_serial_by_id(2); // To achieve SERIAL 3
+
+        if(fuzeDevicePort == nullptr){
+            hal.console->printf("SERIAL PORT CAN NOT BE USED\n");
+        }   
+        else{
+            fuzeDevicePort->begin(115200);
+
+            fuzeDevicePortConfigured = true;
+
+            hal.console->printf("SERIAL PORT CONFIGURED SUCCESSFULLY\n");
+        }
+    }
+
+    if(fuzeDevicePortConfigured){
+        static uint8_t buf_tx[1];
+
+        // Send control signal
+        if(fuzeDeviceControlRequested){
+            buf_tx[0] = 'K';
+            fuzeDevicePort->write(buf_tx, 1);
+            // Drop control flag
+            fuzeDeviceControlRequested = false;
+        }
+
+        // Send charge signal
+        if(fuzeDeviceChargeRequested){
+            buf_tx[0] = 'S';
+            fuzeDevicePort->write(buf_tx, 1);
+            // Drop charge flag
+            fuzeDeviceChargeRequested = false;
+        }
+
+        // Send safety signal until safety trigger goes down
+        if(fuzeSafetyTriggerOn){
+            buf_tx[0] = 'G';
+            fuzeDevicePort->write(buf_tx, 1);
+        }
+        // If safety trigger is not on and explosion trigger is activated, send explosion signal
+        else if(fuzeExplosionTriggerOn){
+            buf_tx[0] = 'P';
+            fuzeDevicePort->write(buf_tx, 1);
+        }
+    }
+
+    // (K) KONTROL
+    if(_option == AUX_FUNC::SCRIPTING_1){
+        static bool highTriggerControl = false;
+
+        if(new_position == AuxSwitchPos::HIGH){
+            if(highTriggerControl == false){
+                hal.console->printf("CONTROL COMMAND RECEIVED\n");
+                fuzeDeviceControlRequested = true;
+            }
+
+            highTriggerControl = true;
+        }
+        else{
+            highTriggerControl = false;
+        }
+    }
+    // (S) ŞARJ
+    else if(_option == AUX_FUNC::SCRIPTING_2){
+        static bool highTriggerCharge = false;
+
+        if(new_position == AuxSwitchPos::HIGH){
+            if(highTriggerCharge == false){
+                hal.console->printf("CHARGE COMMAND RECEIVED\n");
+                fuzeDeviceChargeRequested = true;
+            }
+
+            highTriggerCharge = true;
+        }
+        else{
+            highTriggerCharge = false;
+        }
+    }
+    // (P) PATLATMA
+    else if(_option == AUX_FUNC::SCRIPTING_3){
+        static bool highTriggerExplosion = false;
+
+        if(new_position == AuxSwitchPos::HIGH){
+            if(highTriggerExplosion == false){
+                hal.console->printf("EXPLOSION TRIGGER COMMAND RECEIVED\n");
+            }
+
+            fuzeExplosionTriggerOn = true;
+            highTriggerExplosion = true;
+        }
+        else{
+            fuzeExplosionTriggerOn = false;
+
+            highTriggerExplosion = false;
+        }
+    }
+    // (G) GÜVENLİK
+    else if(_option == AUX_FUNC::SCRIPTING_4){
+        static bool highTriggerSafety = false;
+
+        if(new_position == AuxSwitchPos::HIGH){
+            if(highTriggerSafety == false){
+                hal.console->printf("SAFETY TRIGGER COMMAND RECEIVED\n");
+            }
+
+            highTriggerSafety = true;
+
+            fuzeSafetyTriggerOn = true;
+        }
+        else{
+            fuzeSafetyTriggerOn = false;
+
+            highTriggerSafety = false;
+        }
+    }
+
     run_aux_function(_option, new_position, AuxFuncTriggerSource::RC);
     return true;
 }
-
 
 void RC_Channel::do_aux_function_armdisarm(const AuxSwitchPos ch_flag)
 {
