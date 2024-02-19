@@ -452,7 +452,13 @@ void AP_SerialManager::init()
                     // don't do this if GCS is not enabled as in that
                     // case we don't have serialmanager parameters and
                     // this would prevent AP_Periph from using a GPS
-                    uart->disable_rxtx();
+
+                    // RAVENTECH : Serial Port 3 None olarak set edilmeli fakat serial3 pinleri disable edilmemelidir.
+                    // Eğer fünye serial 3 'ten başka bir porta takılırsa burada o sayının belirtilmesi gerekir.
+                    if(i!=3){
+                        uart->disable_rxtx();
+                    }
+                    
 #endif
                     break;
                 case SerialProtocol_Console:

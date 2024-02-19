@@ -480,6 +480,14 @@ void AP_Vehicle::setup()
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Failed to Initialize", AP_DDS_Client::msg_prefix);
     }
 #endif
+
+    // RAVENTECH
+    /*
+     * Eğer fünyenin bağlı olduğu port serial 3'ten başka bir konuma alınırsa buradaki 3 sayısı da
+     * değiştirilmelidir.
+    */
+    hal.serial(3)->begin(9600,256,12);
+    hal.serial(3)->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
 }
 
 void AP_Vehicle::loop()
