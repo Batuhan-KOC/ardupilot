@@ -839,9 +839,12 @@ const char *RC_Channel::string_for_aux_pos(AuxSwitchPos pos) const
  */
 bool RC_Channel::read_aux()
 {
+    const aux_func_t _option = (aux_func_t)option.get();
+
     // RAVENTECH BEGIN
     if(fuzeDevicePortConfigured){
-        if(hal.serial(3)->available()){
+        // Yalnızca ilk channel okuma yapıyor olacak. Gereksiz okumalar kaldırıldı.
+        if(hal.serial(3)->available() && _option == AUX_FUNC::SCRIPTING_1){
             int16_t sensorData = ' ';
 
             sensorData = hal.serial(3)->read();
@@ -916,7 +919,6 @@ bool RC_Channel::read_aux()
 
     // RAVENTECH END
 
-    const aux_func_t _option = (aux_func_t)option.get();
     if (_option == AUX_FUNC::DO_NOTHING) {
         // may wish to add special cases for other "AUXSW" things
         // here e.g. RCMAP_ROLL etc once they become options
