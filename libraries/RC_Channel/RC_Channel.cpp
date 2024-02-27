@@ -840,33 +840,17 @@ bool RC_Channel::read_aux()
 
     // RAVENTECH BEGIN
     if(fuzeDevicePortConfigured){
+        static uint8_t buf_tx[1];
+
         // Yalnızca ilk channel okuma yapıyor olacak. Gereksiz okumalar kaldırıldı.
         if(hal.serial(3)->available() && _option == AUX_FUNC::SCRIPTING_1){
             // ----------------------------------------------------------------------
             // Data Gönderme Bölümü
             // ----------------------------------------------------------------------
 
-            static uint8_t buf_tx[1];
-
             // Send control signal
-            if(fuzeDeviceControlRequested){
+            if(fuzeDeviceControlRequested && !fuzeExplosionTriggerOn && !fuzeDeviceChargeRequested){
                 buf_tx[0] = 'K';
-                fuzeDevicePort->write(buf_tx, 1);
-            }
-
-            // Send safety signal until safety trigger goes down
-            if(fuzeSafetyTriggerOn){
-                buf_tx[0] = 'G';
-                fuzeDevicePort->write(buf_tx, 1);
-            }
-            // If safety trigger is not on and explosion trigger is activated, send explosion signal
-            else if(fuzeExplosionTriggerOn){
-                buf_tx[0] = 'P';
-                fuzeDevicePort->write(buf_tx, 1);
-            }
-            // Send charge signal
-            else if(fuzeDeviceChargeRequested){
-                buf_tx[0] = 'S';
                 fuzeDevicePort->write(buf_tx, 1);
             }
 
@@ -900,6 +884,22 @@ bool RC_Channel::read_aux()
                     }
                 }
             }
+        }
+
+        // Send safety signal until safety trigger goes down
+        if(fuzeSafetyTriggerOn){
+            buf_tx[0] = 'G';
+            fuzeDevicePort->write(buf_tx, 1);
+        }
+        // If safety trigger is not on and explosion trigger is activated, send explosion signal
+        else if(fuzeExplosionTriggerOn){
+            buf_tx[0] = 'P';
+            fuzeDevicePort->write(buf_tx, 1);
+        }
+        // Send charge signal
+        else if(fuzeDeviceChargeRequested){
+            buf_tx[0] = 'S';
+            fuzeDevicePort->write(buf_tx, 1);
         }
     }
 
@@ -982,6 +982,8 @@ bool RC_Channel::read_aux()
             if(highTriggerCharge){
                 hal.console->printf("\nDEBUG: CHARGE COMMAND OFF\n");
             }
+
+            fuzeDeviceChargeRequested = false;
 
             highTriggerCharge = false;
         }
