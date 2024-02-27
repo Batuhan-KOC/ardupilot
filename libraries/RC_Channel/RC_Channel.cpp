@@ -85,10 +85,16 @@ extern const AP_HAL::HAL& hal;
 #define fuzeDevicePort hal.serial(3)
 
 static bool fuzeDevicePortConfigured = true;
+
 static bool fuzeDeviceControlRequested = false;
 static bool fuzeDeviceChargeRequested = false;
 static bool fuzeExplosionTriggerOn = false;
-static bool fuzeSafetyTriggerOn = false;
+static bool fuzeSafetyTriggerOn = true;
+
+static bool fuzeDeviceControlRequestRised = false;
+static bool fuzeDeviceChargeRequestRised = false;
+static bool fuzeDeviceExplosionRequestRised = false;
+static bool fuzeDeviceSafetyRequestRised = false;
 
 // RAVENTECH END
 
@@ -840,18 +846,68 @@ bool RC_Channel::read_aux()
 
     // RAVENTECH BEGIN
     if(fuzeDevicePortConfigured){
+        // Message send buffer
         static uint8_t buf_tx[1];
+        // Last message send time
+        static float tMessage = 0;
+        // Current time
+        static float cTime = 0;
 
         // Yalnızca ilk channel okuma yapıyor olacak. Gereksiz okumalar kaldırıldı.
-        if(hal.serial(3)->available() && _option == AUX_FUNC::SCRIPTING_1){
+        if(_option == AUX_FUNC::SCRIPTING_1){
+            cTime = AP_HAL::millis();
+
             // ----------------------------------------------------------------------
             // Data Gönderme Bölümü
             // ----------------------------------------------------------------------
 
             // Send control signal
-            if(fuzeDeviceControlRequested && !fuzeExplosionTriggerOn && !fuzeDeviceChargeRequested){
-                buf_tx[0] = 'K';
-                fuzeDevicePort->write(buf_tx, 1);
+            if(fuzeDeviceControlRequested){
+                if((cTime - tMessage > 1000) || fuzeDeviceControlRequestRised){
+                    buf_tx[0] = 'K';
+
+                    fuzeDevicePort->write(buf_tx, 1);
+
+                    tMessage = AP_HAL::millis();
+
+                    fuzeDeviceControlRequestRised = false;
+                }
+            }
+            // Send safety signal until safety trigger goes down
+            else if(fuzeSafetyTriggerOn){
+                if((cTime - tMessage > 1000) || fuzeDeviceSafetyRequestRised){
+                    buf_tx[0] = 'G';
+
+                    fuzeDevicePort->write(buf_tx, 1);
+
+                    tMessage = AP_HAL::millis();
+
+                    fuzeDeviceSafetyRequestRised = false;
+                }
+            }
+            // If safety trigger is not on and explosion trigger is activated, send explosion signal
+            else if(fuzeExplosionTriggerOn){
+                if((cTime - tMessage > 200) || fuzeDeviceExplosionRequestRised){
+                    buf_tx[0] = 'P';
+
+                    fuzeDevicePort->write(buf_tx, 1);
+
+                    tMessage = AP_HAL::millis();
+
+                    fuzeDeviceExplosionRequestRised = false;
+                }
+            }
+            // Send charge signal
+            else if(fuzeDeviceChargeRequested){
+                if((cTime - tMessage > 1000) || fuzeDeviceChargeRequestRised){
+                    buf_tx[0] = 'S';
+
+                    fuzeDevicePort->write(buf_tx, 1);
+
+                    tMessage = AP_HAL::millis();
+
+                    fuzeDeviceChargeRequestRised = false;
+                }
             }
 
             // ----------------------------------------------------------------------
@@ -859,7 +915,7 @@ bool RC_Channel::read_aux()
             // ----------------------------------------------------------------------
 
             // Eğer kontrol sinyali aktif değil ise bufferı okumanın da anlamı yok.
-            if(fuzeDeviceControlRequested){
+            if(fuzeDeviceControlRequested && hal.serial(3)->available()){
                 int16_t sensorData = ' ';
 
                 sensorData = hal.serial(3)->read();
@@ -884,22 +940,6 @@ bool RC_Channel::read_aux()
                     }
                 }
             }
-        }
-
-        // Send safety signal until safety trigger goes down
-        if(fuzeSafetyTriggerOn){
-            buf_tx[0] = 'G';
-            fuzeDevicePort->write(buf_tx, 1);
-        }
-        // If safety trigger is not on and explosion trigger is activated, send explosion signal
-        else if(fuzeExplosionTriggerOn){
-            buf_tx[0] = 'P';
-            fuzeDevicePort->write(buf_tx, 1);
-        }
-        // Send charge signal
-        else if(fuzeDeviceChargeRequested){
-            buf_tx[0] = 'S';
-            fuzeDevicePort->write(buf_tx, 1);
         }
     }
 
@@ -950,6 +990,8 @@ bool RC_Channel::read_aux()
                 hal.console->printf("\nDEBUG: CONTROL COMMAND ON\n");
                 fuzeDeviceControlRequested = true;
 
+                fuzeDeviceControlRequestRised = true;
+
                 // Kontrol isteği geldiği anda buffer silinir. Yeni veri beklenir
                 hal.serial(3)->discard_input();
             }
@@ -960,6 +1002,8 @@ bool RC_Channel::read_aux()
             if(fuzeDeviceControlRequested){
                 hal.console->printf("\nDEBUG: CONTROL COMMAND OFF\n");
             }
+
+            fuzeDeviceControlRequestRised = false;
 
             highTriggerControl = false;
 
@@ -973,8 +1017,11 @@ bool RC_Channel::read_aux()
         if(new_position == AuxSwitchPos::HIGH){
             if(highTriggerCharge == false){
                 hal.console->printf("\nDEBUG: CHARGE COMMAND ON\n");
-                fuzeDeviceChargeRequested = true;
+                
+                fuzeDeviceChargeRequestRised = true;
             }
+
+            fuzeDeviceChargeRequested = true;
 
             highTriggerCharge = true;
         }
@@ -982,6 +1029,8 @@ bool RC_Channel::read_aux()
             if(highTriggerCharge){
                 hal.console->printf("\nDEBUG: CHARGE COMMAND OFF\n");
             }
+
+            fuzeDeviceChargeRequestRised = false;
 
             fuzeDeviceChargeRequested = false;
 
@@ -995,6 +1044,8 @@ bool RC_Channel::read_aux()
         if(new_position == AuxSwitchPos::HIGH){
             if(highTriggerExplosion == false){
                 hal.console->printf("\nDEBUG: EXPLOSION TRIGGER COMMAND ON\n");
+
+                fuzeDeviceExplosionRequestRised = true;
             }
 
             fuzeExplosionTriggerOn = true;
@@ -1005,6 +1056,8 @@ bool RC_Channel::read_aux()
             if(fuzeExplosionTriggerOn){
                 hal.console->printf("\nDEBUG: EXPLOSION TRIGGER COMMAND OFF\n");
             }
+
+            fuzeDeviceExplosionRequestRised = false;
 
             fuzeExplosionTriggerOn = false;
 
@@ -1018,6 +1071,8 @@ bool RC_Channel::read_aux()
         if(new_position == AuxSwitchPos::HIGH){
             if(highTriggerSafety == false){
                 hal.console->printf("\nDEBUG: SAFETY TRIGGER COMMAND ON\n");
+
+                fuzeDeviceSafetyRequestRised = true;
             }
 
             highTriggerSafety = true;
@@ -1028,6 +1083,8 @@ bool RC_Channel::read_aux()
             if(fuzeSafetyTriggerOn){
                 hal.console->printf("\nDEBUG: SAFETY TRIGGER COMMAND OFF\n");
             }
+
+            fuzeDeviceSafetyRequestRised = false;
 
             fuzeSafetyTriggerOn = false;
 
