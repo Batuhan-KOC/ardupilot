@@ -2067,13 +2067,13 @@ void AP_OSD_Screen::draw_eff(uint8_t x, uint8_t y)
 void AP_OSD_Screen::draw_climbeff(uint8_t x, uint8_t y)
 {
     if(fuze_state == 0){
-        backend->write(x,y,false,"HH");
+        backend->write(x,y,false,"H-H");
     }
     else if(fuze_state == 1){
-        backend->write(x,y,false,"EH");
+        backend->write(x,y,false,"E-H");
     }
     else if(fuze_state == 2){
-        backend->write(x,y,true,"EE");
+        backend->write(x,y,true,"E-E");
     }
 
     /* Raventech : code commented out
