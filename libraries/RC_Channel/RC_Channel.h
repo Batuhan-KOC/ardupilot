@@ -13,6 +13,8 @@
 
 #define NUM_RC_CHANNELS 16
 
+extern int fuze_state;
+
 /// @class	RC_Channel
 /// @brief	Object managing one RC channel
 class RC_Channel {

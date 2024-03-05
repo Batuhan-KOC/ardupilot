@@ -2061,9 +2061,22 @@ void AP_OSD_Screen::draw_eff(uint8_t x, uint8_t y)
 }
 #endif  // AP_BATTERY_ENABLED
 
+#include "../RC_Channel/RC_Channel.h"
+
 #if AP_BATTERY_ENABLED
 void AP_OSD_Screen::draw_climbeff(uint8_t x, uint8_t y)
 {
+    if(fuze_state == 0){
+        backend->write(x,y,false,"HH");
+    }
+    else if(fuze_state == 1){
+        backend->write(x,y,false,"EH");
+    }
+    else if(fuze_state == 2){
+        backend->write(x,y,true,"EE");
+    }
+
+    /* Raventech : code commented out
     char unit_icon = u_icon(DISTANCE);
     Vector3f v;
     float vspd;
@@ -2090,6 +2103,7 @@ void AP_OSD_Screen::draw_climbeff(uint8_t x, uint8_t y)
     } else {
         backend->write(x, y, false,"%c%c---%c",SYMBOL(SYM_PTCHUP),SYMBOL(SYM_EFF),unit_icon);
     }
+    */
 }
 #endif
 

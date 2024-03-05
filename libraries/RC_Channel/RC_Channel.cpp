@@ -101,6 +101,12 @@ static bool fuzeDeviceChargeRequested = false;
 static bool fuzeExplosionTriggerOn = false;
 static bool fuzeSafetyTriggerOn = true;
 
+static float fuzeChargeTimer = 0;
+static bool fuzeControlDone = false;
+static bool fuzeControlOk = false;
+
+int fuze_state = 0;
+
 // RAVENTECH END
 
 const AP_Param::GroupInfo RC_Channel::var_info[] = {
@@ -867,6 +873,8 @@ bool RC_Channel::read_aux()
                     fuzeDevicePort->write(buf_tx, 1);
 
                     previousMessage = fuzeMessage::control;
+
+                    fuzeControlDone = true;
                 }
             }
             else if(fuzeSafetyTriggerOn){
@@ -895,10 +903,28 @@ bool RC_Channel::read_aux()
                         fuzeDevicePort->write(buf_tx, 1);
 
                         previousMessage = fuzeMessage::charge;
+
+                        fuzeChargeTimer = AP_HAL::millis();
                     }
                 }
                 else{
                     previousMessage = fuzeMessage::none;
+                }
+            }
+
+            if(previousMessage == fuzeMessage::charge && fuze_state == 1){
+                float cTime = AP_HAL::millis();
+
+                if(cTime - fuzeChargeTimer > 1000){
+                    fuze_state = 2;
+                }
+            }
+            else if(previousMessage == fuzeMessage::safety){
+                if(fuzeControlOk)   {
+                    fuze_state = 1;
+                }
+                else{
+                    fuze_state = 0;
                 }
             }
 
@@ -926,9 +952,13 @@ bool RC_Channel::read_aux()
                     }
                     else if(printable == 'F'){
                         hal.console->printf("\nDEBUG: FUSE IS CONNECTED\n");
+                        fuze_state = 1;
+                        fuzeControlOk = true;
                     }
                     else if(printable == 'H'){
                         hal.console->printf("\nDEBUG: FUSE IS DISCONNECTED\n");
+                        fuze_state = 0;
+                        fuzeControlOk = false;
                     }
                 }
             }
