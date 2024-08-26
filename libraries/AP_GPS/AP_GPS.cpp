@@ -59,6 +59,8 @@
 #include "RTCM3_Parser.h"
 #endif
 
+#include "../RC_Channel/Vanav.h"
+
 #define GPS_RTK_INJECT_TO_ALL 127
 #ifndef GPS_MAX_RATE_MS
 #define GPS_MAX_RATE_MS 200 // maximum value of rate_ms (i.e. slowest update rate) is 5hz or 200ms
@@ -1069,6 +1071,17 @@ void AP_GPS::update(void)
     AP_Notify::flags.gps_status = state[primary_instance].status;
     AP_Notify::flags.gps_num_sats = state[primary_instance].num_sats;
 #endif
+
+    if(vanavSetToHigh){
+        vanavSetToHigh = false;
+        _primary.set_and_save(1);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "VANAV SET TO SECONDARY");
+    }
+    if(vanavSetToLow){
+        vanavSetToLow = false;
+        _primary.set_and_save(0);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "VANAV SET TO PRIMARY");
+    }
 }
 
 /*

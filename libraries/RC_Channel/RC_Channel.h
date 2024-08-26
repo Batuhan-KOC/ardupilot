@@ -10,6 +10,7 @@
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_Common/Bitmask.h>
+#include "Vanav.h"
 
 #define NUM_RC_CHANNELS 16
 

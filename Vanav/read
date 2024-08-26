@@ -1,0 +1,13 @@
+1.
+Jumper TPRO V2 kumandanın sorunsuz çalışması için klasör içerisindeki
+jumper.yaml dosyasını aşağıdaki dosya konumuna kopyalayın
+$HOME/.maxproxy/joysticks
+
+2.
+SITL'i çalıştırdıktan sonra terminale aşağıdaki MAVPROXY command'ini yazın
+module load joystick
+
+    Command'i yazdıktan sonra kumanda sorunsuz çalışmaya başlayacaktır.
+
+3.
+SITL'i QGCS veya APMPlanner veya MissionPlanner'a bağladıktan sonra RC INPUT'ları kontrol edin.

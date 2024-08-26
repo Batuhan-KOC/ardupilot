@@ -1,0 +1,65 @@
+description: Jumper T PRO V2 joystick definition
+match:
+  - '*Jumper*'
+controls:
+
+  # map axis id 2 to rc channel 1
+  - channel: 1
+    type: axis
+    id: 2
+
+  # map axis id 3 to rc channel 2
+  - channel: 2
+    type: axis
+    id: 3
+
+  # map axis id 1 to rc channel 3
+  - channel: 3
+    type: axis
+    id: 1
+    invert: true
+
+  # map axis id 0 to rc channel 4
+  - channel: 4
+    type: axis
+    id: 0
+
+  # SA : Axis 4 -> Channel 5
+  - channel: 5
+    type: axis
+    id: 4
+
+  # SB : Axis 5 -> Channel 6
+  - channel: 6
+    type: axis
+    id: 5
+
+  # SC : Axis 6 -> Channel 7
+  - channel: 7
+    type: axis
+    id: 6
+    
+  # SD : Axis 7 -> Channel 8
+  - channel: 8
+    type: axis
+    id: 7
+    
+  # SE : Button 0 -> Channel 9
+  - channel: 9
+    type: button
+    id: 0
+    
+  # SF : Button 1 -> Channel 10
+  - channel: 10
+    type: button
+    id: 1
+    
+  # S1 : Button 2 -> Channel 11
+  - channel: 11
+    type: button
+    id: 2
+    
+  # S2 : Button 3 -> Channel 12
+  - channel: 12
+    type: button
+    id: 3

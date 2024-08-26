@@ -895,6 +895,25 @@ bool RC_Channel::read_aux()
     }
 #endif
 
+    if(_option == AUX_FUNC::SCRIPTING_1){
+        if(new_position == AuxSwitchPos::HIGH){
+            if(!vanavSwitchHighOld){
+                vanavSwitchHigh = true;
+                vanavSetToHigh = true;
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "VANAV SWITCH HIGH");
+            }
+        }
+        else{
+            if(vanavSwitchHighOld){
+                vanavSwitchHigh = false;
+                vanavSetToLow = true;
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "VANAV SWITCH LOW");
+            }
+        }
+
+        vanavSwitchHighOld = vanavSwitchHigh;
+    }
+
     // debounced; undertake the action:
     run_aux_function(_option, new_position, AuxFuncTriggerSource::RC);
     return true;
