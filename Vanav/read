@@ -11,3 +11,10 @@ module load joystick
 
 3.
 SITL'i QGCS veya APMPlanner veya MissionPlanner'a bağladıktan sonra RC INPUT'ları kontrol edin.
+
+4.
+WAF BOARD TYPE = CUAVv5
+
+5.
+OLD ARDUPILOT VERSION = v4.5.2
+
